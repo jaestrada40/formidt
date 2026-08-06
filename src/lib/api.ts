@@ -66,6 +66,10 @@ export async function getMfaStatus(): Promise<{ mfaRequired: boolean }> {
   return apiFetch('/auth/mfa-status');
 }
 
+export async function resetMfa(code?: string): Promise<{ qrCodeDataUrl: string }> {
+  return apiFetch('/auth/mfa-reset', { method: 'POST', body: JSON.stringify({ code }) });
+}
+
 export async function toggleMfa(code?: string): Promise<{ mfaRequired: boolean }> {
   return apiFetch('/auth/mfa-toggle', { method: 'POST', body: JSON.stringify({ code }) });
 }

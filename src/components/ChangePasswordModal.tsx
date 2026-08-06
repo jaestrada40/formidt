@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, X, Eye, EyeOff, AlertCircle, CheckCircle2, Shield, ShieldOff } from 'lucide-react';
-import { changePassword, getMfaStatus, toggleMfa, ApiError } from '../lib/api';
+import { changePassword, getMfaStatus, toggleMfa, resetMfa, ApiError } from '../lib/api';
 
 interface Props { onClose: () => void; }
 
@@ -30,11 +30,31 @@ export const ChangePasswordModal: React.FC<Props> = ({ onClose }) => {
   const [mfaError, setMfaError] = useState('');
   const [confirmDisable, setConfirmDisable] = useState(false);
   const [disableCode, setDisableCode] = useState('');
+
+  // New device / re-enroll
+  const [showNewDevice, setShowNewDevice] = useState(false);
+  const [newDeviceCode, setNewDeviceCode] = useState('');
+  const [newDeviceLoading, setNewDeviceLoading] = useState(false);
+  const [newDeviceQr, setNewDeviceQr] = useState('');
   const countdown = useTotpCountdown();
 
   useEffect(() => {
     getMfaStatus().then((r) => setMfaRequired(r.mfaRequired)).catch(() => {});
   }, []);
+
+  const handleNewDevice = async () => {
+    setNewDeviceLoading(true);
+    setMfaError('');
+    try {
+      const r = await resetMfa(newDeviceCode || undefined);
+      setNewDeviceQr(r.qrCodeDataUrl);
+      setNewDeviceCode('');
+    } catch (err) {
+      setMfaError(err instanceof ApiError ? err.message : 'Error al regenerar QR.');
+    } finally {
+      setNewDeviceLoading(false);
+    }
+  };
 
   const handleToggleClick = () => {
     setMfaError('');
@@ -183,6 +203,46 @@ export const ChangePasswordModal: React.FC<Props> = ({ onClose }) => {
             <div className="flex items-center gap-1.5 text-xs text-[#93000a]">
               <AlertCircle className="w-3.5 h-3.5 shrink-0" />{mfaError}
             </div>
+          )}
+
+          {/* New device */}
+          {mfaRequired && !confirmDisable && (
+            !showNewDevice ? (
+              <button onClick={() => { setShowNewDevice(true); setNewDeviceQr(''); setMfaError(''); }}
+                className="text-xs text-[#004ac6] hover:underline w-fit">
+                ¿Tienes otro dispositivo? Escanea de nuevo
+              </button>
+            ) : newDeviceQr ? (
+              <div className="space-y-2 pt-1 border-t border-[#c3c6d7]/40">
+                <p className="text-xs text-[#434655] text-center">Escanea este QR con tu nueva app autenticadora:</p>
+                <img src={newDeviceQr} alt="QR MFA" className="mx-auto w-40 h-40 border border-[#c3c6d7]/50 rounded-lg" />
+                <p className="text-xs text-[#737686] text-center">Una vez escaneado, inicia sesión normalmente.</p>
+                <button onClick={() => { setShowNewDevice(false); setNewDeviceQr(''); }}
+                  className="w-full border border-[#c3c6d7] text-sm py-1.5 rounded-lg text-[#434655] hover:bg-[#f8f9ff] transition-colors">
+                  Listo
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2 pt-1 border-t border-[#c3c6d7]/40">
+                <p className="text-xs text-[#434655]">Ingresa el código actual para confirmar y generar un nuevo QR:</p>
+                <input
+                  type="text" inputMode="numeric" maxLength={6} placeholder="Código de 6 dígitos"
+                  value={newDeviceCode} onChange={(e) => setNewDeviceCode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full border border-[#c3c6d7] rounded-md px-3 py-2 text-sm text-center tracking-widest focus:border-[#004ac6] focus:ring-2 focus:ring-[#004ac6]/20 outline-none"
+                />
+                {mfaError && <div className="flex items-center gap-1.5 text-xs text-[#93000a]"><AlertCircle className="w-3.5 h-3.5 shrink-0" />{mfaError}</div>}
+                <div className="flex gap-2">
+                  <button onClick={() => { setShowNewDevice(false); setNewDeviceCode(''); setMfaError(''); }}
+                    className="flex-1 border border-[#c3c6d7] text-sm py-1.5 rounded-lg text-[#434655] hover:bg-[#f8f9ff] transition-colors">
+                    Cancelar
+                  </button>
+                  <button onClick={handleNewDevice} disabled={newDeviceCode.length !== 6 || newDeviceLoading}
+                    className="flex-1 bg-[#004ac6] hover:bg-[#003ea8] disabled:opacity-50 text-white text-sm py-1.5 rounded-lg transition-colors">
+                    {newDeviceLoading ? '...' : 'Generar QR'}
+                  </button>
+                </div>
+              </div>
+            )
           )}
         </div>
 

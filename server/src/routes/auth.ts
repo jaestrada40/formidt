@@ -234,6 +234,32 @@ authRouter.post('/mfa-toggle', requireAdmin, async (req, res, next) => {
   }
 });
 
+authRouter.post('/mfa-reset', requireAdmin, async (req, res, next) => {
+  try {
+    const { code } = req.body as { code?: string };
+    const admin = await prisma.adminUser.findUnique({ where: { id: req.admin!.sub } });
+    if (!admin) { res.status(404).json({ error: 'Usuario no encontrado.' }); return; }
+
+    // Require current TOTP to prove ownership before issuing a new secret.
+    if (admin.mfaEnabled) {
+      if (!code || !admin.mfaSecret || !verifyMfaToken(code, admin.mfaSecret)) {
+        res.status(401).json({ error: 'Código inválido. Ingresa el código actual antes de regenerar.' });
+        return;
+      }
+    }
+
+    const newSecret = generateMfaSecret();
+    const qrCodeDataUrl = await generateMfaQrCode(admin.email, newSecret);
+    await prisma.adminUser.update({
+      where: { id: admin.id },
+      data: { mfaSecret: newSecret, mfaEnabled: false },
+    });
+    res.json({ qrCodeDataUrl });
+  } catch (err) {
+    next(err);
+  }
+});
+
 authRouter.post('/change-password', requireAdmin, async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
