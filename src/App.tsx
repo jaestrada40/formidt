@@ -290,7 +290,7 @@ export default function App() {
   };
 
   return (
-    <div className="bg-[#f8f9ff] text-[#121c28] font-['Work_Sans',sans-serif] min-h-screen flex flex-col antialiased">
+    <div className="bg-[#f8f9ff] text-[#121c28] font-['Work_Sans',sans-serif] min-h-screen flex flex-col antialiased overflow-x-hidden">
       {/* Sidebar Progress Stepper */}
       <Sidebar
         activeSection={activeSection}
@@ -305,7 +305,7 @@ export default function App() {
       />
 
       {/* Main Container Layout */}
-      <div className="flex-1 lg:ml-64 w-full flex flex-col">
+      <div className="flex-1 lg:ml-64 min-w-0 flex flex-col">
         <Header
           currentTab={currentTab}
           onSelectTab={setCurrentTab}
