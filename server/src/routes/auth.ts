@@ -202,7 +202,7 @@ authRouter.post('/change-password', requireAdmin, async (req, res, next) => {
       return;
     }
 
-    const admin = await prisma.adminUser.findUnique({ where: { id: req.admin!.id } });
+    const admin = await prisma.adminUser.findUnique({ where: { id: req.admin!.sub } });
     if (!admin) {
       res.status(404).json({ error: 'Usuario no encontrado.' });
       return;
