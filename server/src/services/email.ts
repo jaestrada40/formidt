@@ -40,7 +40,7 @@ export async function sendApplicationNotification(app: ApplicationSummary): Prom
 
   const adminUrl = `${process.env.APP_URL || ''}/admin`;
   const entityLabel = formatEntityType(app.entityType);
-  const now = new Date().toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' });
+  const now = new Date().toLocaleString('es-GT', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Guatemala' });
 
   const html = `<!DOCTYPE html>
 <html lang="en">
