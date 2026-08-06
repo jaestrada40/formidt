@@ -46,6 +46,7 @@ export async function submitApplication(payload: SubmitPayload): Promise<{ appId
 // ---- Admin auth ----
 
 export type LoginResult =
+  | { success: true; email: string }
   | { mfaRequired: true; tempUserId: string }
   | { mfaSetupRequired: true; tempUserId: string; qrCodeDataUrl: string };
 

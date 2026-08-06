@@ -34,7 +34,9 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
         localStorage.removeItem('admin_email');
       }
       const result = await adminLogin(email.trim(), password, turnstileToken);
-      if ('mfaSetupRequired' in result) {
+      if ('success' in result) {
+        onSuccess(result.email);
+      } else if ('mfaSetupRequired' in result) {
         setStage({ name: 'mfa-setup', tempUserId: result.tempUserId, qrCodeDataUrl: result.qrCodeDataUrl });
       } else {
         setStage({ name: 'mfa', tempUserId: result.tempUserId });

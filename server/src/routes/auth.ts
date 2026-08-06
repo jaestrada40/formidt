@@ -88,6 +88,13 @@ authRouter.post('/login', loginLimiter, async (req, res, next) => {
       await prisma.adminUser.update({ where: { id: admin.id }, data: { failedLoginAttempts: 0, lockedUntil: null } });
     }
 
+    // If MFA is disabled via env var, issue session immediately after password check.
+    if (process.env.DISABLE_MFA === 'true') {
+      await issueSession(admin.id, admin.email, admin.role, res);
+      res.json({ success: true, email: admin.email });
+      return;
+    }
+
     if (!admin.mfaEnabled) {
       // First-ever login: force MFA enrollment before any session is granted.
       const secret = generateMfaSecret();
