@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, FileText, LayoutDashboard, LogOut, UserCog, KeyRound } from 'lucide-react';
+import { ShieldCheck, FileText, LayoutDashboard, LogOut, UserCog, Settings } from 'lucide-react';
 import { PortalTab } from '../types';
 
 interface HeaderProps {
@@ -73,8 +73,8 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={onChangePassword}
                 className="flex items-center gap-1.5 text-xs text-[#434655] hover:text-[#004ac6] hover:bg-[#eef4ff] px-3 py-1.5 rounded-lg transition-colors"
               >
-                <KeyRound className="w-3.5 h-3.5" />
-                <span>Cambiar contraseña</span>
+                <Settings className="w-3.5 h-3.5" />
+                <span>Configuración</span>
               </button>
               <button
                 onClick={onLogout}

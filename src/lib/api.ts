@@ -62,6 +62,14 @@ export async function adminLogout(): Promise<void> {
   await apiFetch('/auth/logout', { method: 'POST' });
 }
 
+export async function getMfaStatus(): Promise<{ mfaRequired: boolean }> {
+  return apiFetch('/auth/mfa-status');
+}
+
+export async function toggleMfa(): Promise<{ mfaRequired: boolean }> {
+  return apiFetch('/auth/mfa-toggle', { method: 'POST' });
+}
+
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   await apiFetch('/auth/change-password', {
     method: 'POST',

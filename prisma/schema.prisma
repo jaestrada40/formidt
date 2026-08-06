@@ -67,6 +67,7 @@ model AdminUser {
   // TOTP MFA (Google Authenticator / Authy compatible)
   mfaSecret    String?  @map("mfa_secret")
   mfaEnabled   Boolean  @default(false) @map("mfa_enabled")
+  mfaRequired  Boolean  @default(true)  @map("mfa_required")
 
   role         String   @default("admin")
 

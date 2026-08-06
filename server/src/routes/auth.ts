@@ -88,8 +88,8 @@ authRouter.post('/login', loginLimiter, async (req, res, next) => {
       await prisma.adminUser.update({ where: { id: admin.id }, data: { failedLoginAttempts: 0, lockedUntil: null } });
     }
 
-    // If MFA is disabled via env var, issue session immediately after password check.
-    if (process.env.DISABLE_MFA === 'true') {
+    // If MFA is disabled (per admin setting or env fallback), issue session immediately.
+    if (!admin.mfaRequired || process.env.DISABLE_MFA === 'true') {
       await issueSession(admin.id, admin.email, admin.role, res);
       res.json({ success: true, email: admin.email });
       return;
@@ -195,6 +195,29 @@ authRouter.post('/logout', requireAdmin, async (req, res, next) => {
 
 authRouter.get('/me', requireAdmin, (req, res) => {
   res.json({ email: req.admin?.email, role: req.admin?.role });
+});
+
+authRouter.get('/mfa-status', requireAdmin, async (req, res, next) => {
+  try {
+    const admin = await prisma.adminUser.findUnique({ where: { id: req.admin!.sub } });
+    res.json({ mfaRequired: admin?.mfaRequired ?? true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.post('/mfa-toggle', requireAdmin, async (req, res, next) => {
+  try {
+    const admin = await prisma.adminUser.findUnique({ where: { id: req.admin!.sub } });
+    if (!admin) { res.status(404).json({ error: 'Usuario no encontrado.' }); return; }
+    const updated = await prisma.adminUser.update({
+      where: { id: admin.id },
+      data: { mfaRequired: !admin.mfaRequired },
+    });
+    res.json({ mfaRequired: updated.mfaRequired });
+  } catch (err) {
+    next(err);
+  }
 });
 
 authRouter.post('/change-password', requireAdmin, async (req, res, next) => {
