@@ -89,15 +89,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border border-[#c3c6d7] rounded-md px-3 py-2 text-sm focus:border-[#004ac6] focus:ring-2 focus:ring-[#004ac6]/20 outline-none"
             />
-            <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
-              <input
-                type="checkbox"
-                checked={rememberEmail}
-                onChange={(e) => setRememberEmail(e.target.checked)}
-                className="accent-[#004ac6] w-3.5 h-3.5"
-              />
-              <span className="text-xs text-[#434655]">Recordar correo</span>
-            </label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -115,6 +106,15 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+              <input
+                type="checkbox"
+                checked={rememberEmail}
+                onChange={(e) => setRememberEmail(e.target.checked)}
+                className="accent-[#004ac6] w-3.5 h-3.5"
+              />
+              <span className="text-xs text-[#434655]">Recordar</span>
+            </label>
             <div className="flex justify-center">
               <TurnstileWidget onToken={setTurnstileToken} />
             </div>
