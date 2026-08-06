@@ -1,9 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+
+function toDateInput(mmddyyyy: string): string {
+  if (!mmddyyyy) return '';
+  const [m, d, y] = mmddyyyy.split('/');
+  return y && m && d ? `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}` : '';
+}
+
+function fromDateInput(yyyymmdd: string): string {
+  if (!yyyymmdd) return '';
+  const [y, m, d] = yyyymmdd.split('-');
+  return `${m}/${d}/${y}`;
+}
 import {
   User,
   Store,
   Badge,
-  Calendar,
   Mail,
   ChevronDown,
   Info,
@@ -359,16 +370,14 @@ export const MerchantForm: React.FC<MerchantFormProps> = ({
               <div className="relative w-full max-w-md">
                 <input
                   id="date_started"
-                  type="text"
-                  placeholder="MM/DD/YYYY"
+                  type="date"
                   required
-                  value={businessInfo.dateStarted}
-                  onChange={(e) => onChangeBusinessInfo({ dateStarted: e.target.value })}
-                  className={`w-full border rounded-md px-3 py-2 text-sm bg-white text-[#121c28] pr-10 focus:border-[#004ac6] focus:ring-2 focus:ring-[#004ac6]/20 outline-none transition-all placeholder:text-[#737686] ${
+                  value={toDateInput(businessInfo.dateStarted)}
+                  onChange={(e) => onChangeBusinessInfo({ dateStarted: fromDateInput(e.target.value) })}
+                  className={`w-full border rounded-md px-3 py-2 text-sm bg-white text-[#121c28] focus:border-[#004ac6] focus:ring-2 focus:ring-[#004ac6]/20 outline-none transition-all ${
                     errors.dateStarted ? 'border-[#ba1a1a]' : 'border-[#c3c6d7]'
                   }`}
                 />
-                <Calendar className="w-4 h-4 text-[#737686] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
@@ -665,14 +674,12 @@ export const MerchantForm: React.FC<MerchantFormProps> = ({
                     <div className="relative">
                       <input
                         id={`owner_dob_${index}`}
-                        type="text"
-                        placeholder="DOB (MM/DD/YYYY)"
+                        type="date"
                         required
-                        value={owner.dob}
-                        onChange={(e) => handleOwnerChange(index, 'dob', e.target.value)}
-                        className="w-full border border-[#c3c6d7] rounded-md px-3 py-2 text-sm bg-white text-[#121c28] pr-10 focus:border-[#004ac6] focus:ring-2 focus:ring-[#004ac6]/20 outline-none transition-all placeholder:text-[#737686]"
+                        value={toDateInput(owner.dob)}
+                        onChange={(e) => handleOwnerChange(index, 'dob', fromDateInput(e.target.value))}
+                        className="w-full border border-[#c3c6d7] rounded-md px-3 py-2 text-sm bg-white text-[#121c28] focus:border-[#004ac6] focus:ring-2 focus:ring-[#004ac6]/20 outline-none transition-all"
                       />
-                      <Calendar className="w-4 h-4 text-[#737686] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
                     <div className="relative">
                       <input
