@@ -1,0 +1,6 @@
+{
+  "name": "Enrollment Portal",
+  "description": "Portal de Registro de Comerciantes y Gestión de Solicitudes Financieras",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

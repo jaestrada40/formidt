@@ -1,0 +1,92 @@
+// Prisma schema for the Enrollment Portal
+// Run `npx prisma migrate deploy` (production) or `npx prisma migrate dev` (local)
+// after DATABASE_URL is set in .env
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ApplicationStatus {
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model Application {
+  id        String   @id @default(uuid())
+  // Human-friendly sequential ID shown to users, e.g. APP-000042.
+  // Backed by a DB sequence + unique constraint so collisions are impossible.
+  appId     String   @unique @map("app_id")
+  status    ApplicationStatus @default(UNDER_REVIEW)
+
+  // Section 1: Customer Details
+  nrsCustomer  String  @map("nrs_customer")
+  elmerNumber  String? @map("elmer_number")
+  nrsPayMid    String? @map("nrs_pay_mid")
+
+  // Section 2: Business Information
+  legalName            String @map("legal_name")
+  dba                  String
+  entityType           String @map("entity_type")
+  dateStarted          String @map("date_started")
+  stateOfIncorporation String @map("state_of_incorporation")
+  federalTaxId         String @map("federal_tax_id")
+  address              String
+  city                 String
+  state                String
+  zipCode              String @map("zip_code")
+  country              String @default("US")
+  businessTel          String? @map("business_tel")
+  email                String
+
+  // Section 3: Owners — stored as JSON array of OwnerInfo.
+  // SSNs inside are encrypted at rest (see server/src/utils/crypto.ts)
+  // before being written here, and decrypted only for admin viewing.
+  owners Json
+
+  notes     String?
+
+  submittedIp String? @map("submitted_ip")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("applications")
+}
+
+model AdminUser {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+
+  // TOTP MFA (Google Authenticator / Authy compatible)
+  mfaSecret    String?  @map("mfa_secret")
+  mfaEnabled   Boolean  @default(false) @map("mfa_enabled")
+
+  role         String   @default("admin")
+
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("admin_users")
+}
+
+// Persisted refresh tokens so they can be revoked (logout / compromise).
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique @map("token_hash")
+  adminId   String   @map("admin_id")
+  expiresAt DateTime @map("expires_at")
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("refresh_tokens")
+}
