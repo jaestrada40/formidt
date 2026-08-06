@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, FileText, LayoutDashboard, LogOut, UserCog } from 'lucide-react';
+import { ShieldCheck, FileText, LayoutDashboard, LogOut, UserCog, KeyRound } from 'lucide-react';
 import { PortalTab } from '../types';
 
 interface HeaderProps {
@@ -8,6 +8,7 @@ interface HeaderProps {
   isAdminAuthenticated: boolean;
   adminEmail?: string;
   onLogout: () => void;
+  onChangePassword: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   isAdminAuthenticated,
   adminEmail,
   onLogout,
+  onChangePassword,
 }) => {
   return (
     <header className="bg-[#ffffff] border-b border-[#c3c6d7]/50 sticky top-0 z-30 shadow-xs">
@@ -67,6 +69,13 @@ export const Header: React.FC<HeaderProps> = ({
                 <ShieldCheck className="w-3.5 h-3.5 text-[#004ac6]" />
                 <span>{adminEmail}</span>
               </div>
+              <button
+                onClick={onChangePassword}
+                className="flex items-center gap-1.5 text-xs text-[#434655] hover:text-[#004ac6] hover:bg-[#eef4ff] px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Cambiar contraseña</span>
+              </button>
               <button
                 onClick={onLogout}
                 className="flex items-center gap-1.5 text-xs text-[#434655] hover:text-[#ba1a1a] hover:bg-[#ffdad6]/40 px-3 py-1.5 rounded-lg transition-colors"

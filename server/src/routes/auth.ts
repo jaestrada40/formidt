@@ -183,6 +183,38 @@ authRouter.get('/me', requireAdmin, (req, res) => {
   res.json({ email: req.admin?.email, role: req.admin?.role });
 });
 
+authRouter.post('/change-password', requireAdmin, async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ error: 'Se requieren la contraseña actual y la nueva.' });
+      return;
+    }
+    if (newPassword.length < 8) {
+      res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres.' });
+      return;
+    }
+
+    const admin = await prisma.adminUser.findUnique({ where: { id: req.admin!.id } });
+    if (!admin) {
+      res.status(404).json({ error: 'Usuario no encontrado.' });
+      return;
+    }
+
+    const valid = await bcrypt.compare(currentPassword, admin.passwordHash);
+    if (!valid) {
+      res.status(401).json({ error: 'La contraseña actual es incorrecta.' });
+      return;
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await prisma.adminUser.update({ where: { id: admin.id }, data: { passwordHash: newHash } });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 async function issueSession(adminId: string, email: string, role: string, res: import('express').Response) {
   const accessToken = signAccessToken({ sub: adminId, email, role });
   const refreshToken = jwt.sign({ sub: adminId }, getRefreshSecret(), {

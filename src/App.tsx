@@ -6,6 +6,7 @@ import { ApplicationsList } from './components/ApplicationsList';
 import { ApplicationDetailModal } from './components/ApplicationDetailModal';
 import { SubmissionSuccessModal } from './components/SubmissionSuccessModal';
 import { AdminLogin } from './components/AdminLogin';
+import { ChangePasswordModal } from './components/ChangePasswordModal';
 import {
   CustomerDetails,
   BusinessInfo,
@@ -74,6 +75,7 @@ export default function App() {
   // Admin: applications list
   const [applications, setApplications] = useState<MerchantApplication[]>([]);
   const [isLoadingApplications, setIsLoadingApplications] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   // Current Form State
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>(defaultCustomerDetails);
@@ -147,6 +149,7 @@ export default function App() {
           o.name.trim() &&
           o.title.trim() &&
           o.ownershipPercent.trim() &&
+          o.lengthOfOwnership.trim() &&
           o.dob.trim() &&
           o.ssn.trim() &&
           o.homeAddress.trim() &&
@@ -312,6 +315,7 @@ export default function App() {
           isAdminAuthenticated={isAdminAuthenticated}
           adminEmail={adminEmail}
           onLogout={handleLogout}
+          onChangePassword={() => setShowChangePassword(true)}
         />
 
         {/* Tab Content */}
@@ -371,6 +375,10 @@ export default function App() {
         application={recentlySubmittedApp}
         onClose={() => setRecentlySubmittedApp(null)}
       />
+
+      {showChangePassword && (
+        <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+      )}
     </div>
   );
 }
