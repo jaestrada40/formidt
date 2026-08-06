@@ -49,8 +49,8 @@ export type LoginResult =
   | { mfaRequired: true; tempUserId: string }
   | { mfaSetupRequired: true; tempUserId: string; qrCodeDataUrl: string };
 
-export async function adminLogin(email: string, password: string): Promise<LoginResult> {
-  return apiFetch('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+export async function adminLogin(email: string, password: string, turnstileToken: string): Promise<LoginResult> {
+  return apiFetch('/auth/login', { method: 'POST', body: JSON.stringify({ email, password, turnstileToken }) });
 }
 
 export async function verifyMfa(tempUserId: string, code: string): Promise<{ success: true; email: string }> {

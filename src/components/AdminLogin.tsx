@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, ShieldCheck, KeyRound, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { adminLogin, verifyMfa, ApiError } from '../lib/api';
+import { TurnstileWidget } from './TurnstileWidget';
 
 interface AdminLoginProps {
   onSuccess: (email: string) => void;
@@ -20,6 +21,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberEmail, setRememberEmail] = useState(() => !!localStorage.getItem('admin_email'));
+  const [turnstileToken, setTurnstileToken] = useState('');
 
   const handleCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +33,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
       } else {
         localStorage.removeItem('admin_email');
       }
-      const result = await adminLogin(email.trim(), password);
+      const result = await adminLogin(email.trim(), password, turnstileToken);
       if ('mfaSetupRequired' in result) {
         setStage({ name: 'mfa-setup', tempUserId: result.tempUserId, qrCodeDataUrl: result.qrCodeDataUrl });
       } else {
@@ -113,9 +115,12 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            <div className="flex justify-center">
+              <TurnstileWidget onToken={setTurnstileToken} />
+            </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !turnstileToken}
               className="w-full bg-[#004ac6] hover:bg-[#003ea8] disabled:opacity-60 text-white font-medium text-sm py-2.5 rounded-lg transition-colors"
             >
               {loading ? 'Verificando...' : 'Continuar'}

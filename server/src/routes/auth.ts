@@ -6,6 +6,7 @@ import { prisma } from '../db';
 import { signAccessToken, requireAdmin } from '../middleware/auth';
 import { loginLimiter } from '../middleware/rateLimiter';
 import { generateMfaSecret, generateMfaQrCode, verifyMfaToken } from '../services/totp';
+import { verifyTurnstileToken } from '../services/turnstile';
 
 export const authRouter = Router();
 
@@ -37,9 +38,15 @@ function getRefreshSecret(): string {
  */
 authRouter.post('/login', loginLimiter, async (req, res, next) => {
   try {
-    const { email, password } = req.body as { email?: string; password?: string };
+    const { email, password, turnstileToken } = req.body as { email?: string; password?: string; turnstileToken?: string };
     if (!email || !password) {
       res.status(400).json({ error: 'Email y contraseña son requeridos.' });
+      return;
+    }
+
+    const turnstileOk = await verifyTurnstileToken(turnstileToken ?? '', req.ip);
+    if (!turnstileOk) {
+      res.status(400).json({ error: 'Verificación anti-bot fallida.' });
       return;
     }
 
