@@ -2,58 +2,92 @@ import React, { useState, useEffect } from 'react';
 import { Settings, X, Eye, EyeOff, AlertCircle, CheckCircle2, Shield, ShieldOff } from 'lucide-react';
 import { changePassword, getMfaStatus, toggleMfa, ApiError } from '../lib/api';
 
-interface ChangePasswordModalProps {
-  onClose: () => void;
+interface Props { onClose: () => void; }
+
+function useTotpCountdown() {
+  const [seconds, setSeconds] = useState(() => 30 - (Math.floor(Date.now() / 1000) % 30));
+  useEffect(() => {
+    const id = setInterval(() => setSeconds(30 - (Math.floor(Date.now() / 1000) % 30)), 500);
+    return () => clearInterval(id);
+  }, []);
+  return seconds;
 }
 
-export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ onClose }) => {
+export const ChangePasswordModal: React.FC<Props> = ({ onClose }) => {
+  // Password change
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNext, setShowNext] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState('');
+  const [pwSuccess, setPwSuccess] = useState(false);
 
+  // MFA
   const [mfaRequired, setMfaRequired] = useState<boolean | null>(null);
   const [mfaToggling, setMfaToggling] = useState(false);
+  const [mfaError, setMfaError] = useState('');
+  const [confirmDisable, setConfirmDisable] = useState(false);
+  const [disableCode, setDisableCode] = useState('');
+  const countdown = useTotpCountdown();
 
   useEffect(() => {
     getMfaStatus().then((r) => setMfaRequired(r.mfaRequired)).catch(() => {});
   }, []);
 
-  const handleToggleMfa = async () => {
+  const handleToggleClick = () => {
+    setMfaError('');
+    if (mfaRequired) {
+      // Disabling — ask for code first
+      setConfirmDisable(true);
+    } else {
+      // Enabling — no code needed
+      doToggle();
+    }
+  };
+
+  const doToggle = async (code?: string) => {
     setMfaToggling(true);
+    setMfaError('');
     try {
-      const r = await toggleMfa();
+      const r = await toggleMfa(code);
       setMfaRequired(r.mfaRequired);
-    } catch {
-      // ignore
+      setConfirmDisable(false);
+      setDisableCode('');
+    } catch (err) {
+      setMfaError(err instanceof ApiError ? err.message : 'Error al cambiar MFA.');
     } finally {
       setMfaToggling(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    if (next !== confirm) { setError('Las contraseñas nuevas no coinciden.'); return; }
-    if (next.length < 8) { setError('La nueva contraseña debe tener al menos 8 caracteres.'); return; }
-    setLoading(true);
+    setPwError('');
+    if (next !== confirm) { setPwError('Las contraseñas nuevas no coinciden.'); return; }
+    if (next.length < 8) { setPwError('La nueva contraseña debe tener al menos 8 caracteres.'); return; }
+    setPwLoading(true);
     try {
       await changePassword(current, next);
-      setSuccess(true);
+      setPwSuccess(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Error al cambiar la contraseña.');
+      setPwError(err instanceof ApiError ? err.message : 'Error al cambiar la contraseña.');
     } finally {
-      setLoading(false);
+      setPwLoading(false);
     }
   };
+
+  const pct = (countdown / 30) * 100;
+  const r = 10;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl border border-[#c3c6d7]/50 w-full max-w-sm p-7 space-y-5">
+
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Settings className="w-5 h-5 text-[#004ac6]" />
@@ -64,43 +98,107 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ onClos
           </button>
         </div>
 
-        {/* MFA toggle */}
-        <div className="flex items-center justify-between bg-[#f8f9ff] border border-[#c3c6d7]/50 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            {mfaRequired
-              ? <Shield className="w-5 h-5 text-[#004ac6] shrink-0" />
-              : <ShieldOff className="w-5 h-5 text-[#737686] shrink-0" />
-            }
-            <div>
-              <p className="text-sm font-medium text-[#121c28]">Verificación en dos pasos</p>
-              <p className="text-xs text-[#737686]">{mfaRequired ? 'Activa — se pide código al iniciar sesión' : 'Desactivada — solo email y contraseña'}</p>
+        {/* MFA section */}
+        <div className="bg-[#f8f9ff] border border-[#c3c6d7]/50 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {mfaRequired
+                ? <Shield className="w-5 h-5 text-[#004ac6] shrink-0" />
+                : <ShieldOff className="w-5 h-5 text-[#737686] shrink-0" />}
+              <div>
+                <p className="text-sm font-medium text-[#121c28]">Verificación en dos pasos</p>
+                <p className="text-xs text-[#737686]">
+                  {mfaRequired ? 'Activa — se pide código al iniciar sesión' : 'Desactivada — solo email y contraseña'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Countdown ring — only when MFA is active */}
+              {mfaRequired && (
+                <div className="flex flex-col items-center" title={`Código válido por ${countdown}s`}>
+                  <svg width="28" height="28" viewBox="0 0 28 28">
+                    <circle cx="14" cy="14" r={r} fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                    <circle
+                      cx="14" cy="14" r={r} fill="none"
+                      stroke={countdown <= 5 ? '#ba1a1a' : '#004ac6'}
+                      strokeWidth="3"
+                      strokeDasharray={`${dash} ${circ}`}
+                      strokeLinecap="round"
+                      transform="rotate(-90 14 14)"
+                      style={{ transition: 'stroke-dasharray 0.5s linear' }}
+                    />
+                    <text x="14" y="18" textAnchor="middle" fontSize="9" fill={countdown <= 5 ? '#ba1a1a' : '#004ac6'} fontWeight="600">
+                      {countdown}
+                    </text>
+                  </svg>
+                </div>
+              )}
+
+              {/* Toggle switch */}
+              <button
+                onClick={handleToggleClick}
+                disabled={mfaToggling || mfaRequired === null}
+                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 cursor-pointer ${
+                  mfaRequired ? 'bg-[#004ac6]' : 'bg-[#c3c6d7]'
+                }`}
+              >
+                <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${mfaRequired ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
             </div>
           </div>
-          <button
-            onClick={handleToggleMfa}
-            disabled={mfaToggling || mfaRequired === null}
-            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 cursor-pointer ${
-              mfaRequired ? 'bg-[#004ac6]' : 'bg-[#c3c6d7]'
-            }`}
-          >
-            <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${mfaRequired ? 'translate-x-5' : 'translate-x-0'}`} />
-          </button>
+
+          {/* Confirm disable — code input */}
+          {confirmDisable && (
+            <div className="space-y-2 pt-1 border-t border-[#c3c6d7]/40">
+              <p className="text-xs text-[#434655]">Ingresa el código de tu app para confirmar que eres tú:</p>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="Código de 6 dígitos"
+                value={disableCode}
+                onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, ''))}
+                className="w-full border border-[#c3c6d7] rounded-md px-3 py-2 text-sm text-center tracking-widest focus:border-[#004ac6] focus:ring-2 focus:ring-[#004ac6]/20 outline-none"
+              />
+              {mfaError && (
+                <div className="flex items-center gap-1.5 text-xs text-[#93000a]">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />{mfaError}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button onClick={() => { setConfirmDisable(false); setDisableCode(''); setMfaError(''); }}
+                  className="flex-1 border border-[#c3c6d7] text-sm py-1.5 rounded-lg text-[#434655] hover:bg-[#f8f9ff] transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={() => doToggle(disableCode)} disabled={disableCode.length !== 6 || mfaToggling}
+                  className="flex-1 bg-[#ba1a1a] hover:bg-[#93000a] disabled:opacity-50 text-white text-sm py-1.5 rounded-lg transition-colors">
+                  {mfaToggling ? '...' : 'Desactivar'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!confirmDisable && mfaError && (
+            <div className="flex items-center gap-1.5 text-xs text-[#93000a]">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />{mfaError}
+            </div>
+          )}
         </div>
 
+        {/* Password change */}
         <div className="border-t border-[#c3c6d7]/40 pt-4">
           <p className="text-xs font-semibold text-[#434655] uppercase tracking-wide mb-3">Cambiar contraseña</p>
-
-          {success ? (
-            <div className="flex flex-col items-center gap-3 py-2 text-center">
-              <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-              <p className="text-sm font-medium text-[#121c28]">Contraseña actualizada correctamente.</p>
+          {pwSuccess ? (
+            <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              Contraseña actualizada correctamente.
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-3">
-              {error && (
+            <form onSubmit={handlePasswordSubmit} className="space-y-3">
+              {pwError && (
                 <div className="flex items-start gap-2 bg-[#ffdad6]/60 border border-[#ba1a1a]/30 rounded-lg p-3 text-xs text-[#93000a]">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{error}</span>
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /><span>{pwError}</span>
                 </div>
               )}
               <div className="relative">
@@ -119,9 +217,9 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ onClos
               </div>
               <input type="password" required placeholder="Confirmar nueva contraseña" value={confirm} onChange={(e) => setConfirm(e.target.value)}
                 className="w-full border border-[#c3c6d7] rounded-md px-3 py-2 text-sm focus:border-[#004ac6] focus:ring-2 focus:ring-[#004ac6]/20 outline-none" />
-              <button type="submit" disabled={loading}
+              <button type="submit" disabled={pwLoading}
                 className="w-full bg-[#004ac6] hover:bg-[#003ea8] disabled:opacity-60 text-white font-medium text-sm py-2.5 rounded-lg transition-colors">
-                {loading ? 'Guardando...' : 'Cambiar contraseña'}
+                {pwLoading ? 'Guardando...' : 'Cambiar contraseña'}
               </button>
             </form>
           )}

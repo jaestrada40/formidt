@@ -208,8 +208,22 @@ authRouter.get('/mfa-status', requireAdmin, async (req, res, next) => {
 
 authRouter.post('/mfa-toggle', requireAdmin, async (req, res, next) => {
   try {
+    const { code } = req.body as { code?: string };
     const admin = await prisma.adminUser.findUnique({ where: { id: req.admin!.sub } });
     if (!admin) { res.status(404).json({ error: 'Usuario no encontrado.' }); return; }
+
+    // Disabling MFA requires a valid TOTP code to confirm identity.
+    if (admin.mfaRequired && admin.mfaEnabled) {
+      if (!code) {
+        res.status(400).json({ error: 'Se requiere el código de verificación para desactivar el MFA.' });
+        return;
+      }
+      if (!admin.mfaSecret || !verifyMfaToken(code, admin.mfaSecret)) {
+        res.status(401).json({ error: 'Código inválido. Intenta de nuevo.' });
+        return;
+      }
+    }
+
     const updated = await prisma.adminUser.update({
       where: { id: admin.id },
       data: { mfaRequired: !admin.mfaRequired },
