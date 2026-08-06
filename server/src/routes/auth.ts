@@ -11,7 +11,7 @@ export const authRouter = Router();
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
-const REFRESH_COOKIE_DAYS = 7;
+const REFRESH_COOKIE_HOURS = 4;
 
 function cookieOpts(maxAgeMs: number) {
   return {
@@ -218,19 +218,19 @@ authRouter.post('/change-password', requireAdmin, async (req, res, next) => {
 async function issueSession(adminId: string, email: string, role: string, res: import('express').Response) {
   const accessToken = signAccessToken({ sub: adminId, email, role });
   const refreshToken = jwt.sign({ sub: adminId }, getRefreshSecret(), {
-    expiresIn: `${REFRESH_COOKIE_DAYS}d`,
+    expiresIn: `${REFRESH_COOKIE_HOURS}h`,
   });
 
   await prisma.refreshToken.create({
     data: {
       adminId,
       tokenHash: hashToken(refreshToken),
-      expiresAt: new Date(Date.now() + REFRESH_COOKIE_DAYS * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + REFRESH_COOKIE_HOURS * 60 * 60 * 1000),
     },
   });
 
   res.cookie('access_token', accessToken, cookieOpts(15 * 60 * 1000));
-  res.cookie('refresh_token', refreshToken, cookieOpts(REFRESH_COOKIE_DAYS * 24 * 60 * 60 * 1000));
+  res.cookie('refresh_token', refreshToken, cookieOpts(REFRESH_COOKIE_HOURS * 60 * 60 * 1000));
 }
 
 function hashToken(token: string): string {
